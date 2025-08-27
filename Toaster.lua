@@ -43,7 +43,7 @@ local DefaultOptions = {
     Icon = "rbxassetid://7072706760",
     BorderThickness = 0,
     CornerRadius = 12,
-    AnimationStyle = Enum.EasingStyle.Expo, -- Fixed: was Exponential
+    AnimationStyle = Enum.EasingStyle.Exponential,
     AnimationDuration = 0.6,
     Buttons = {},
     MaxToasts = 6,
@@ -77,7 +77,6 @@ local function removeToast(frame)
     activeToasts = math.max(0, activeToasts - 1)
     updateToastPositions()
     
-    -- Fixed: Process queue without blocking wait
     if #toastQueue > 0 then
         local nextToast = table.remove(toastQueue, 1)
         task.spawn(function()
@@ -259,7 +258,6 @@ local function createToast(message, options)
         btnStroke.Transparency = 0.7
         btnStroke.Parent = btn
 
-        -- Button hover effects
         btn.MouseEnter:Connect(function()
             TweenService:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
                 BackgroundTransparency = 0,
@@ -316,7 +314,6 @@ local function createToast(message, options)
         Size = UDim2.new(0, 0, 0, 2)
     }):Play()
 
-    -- Fixed: Auto-dismiss after duration
     task.delay(options.Duration, function()
         if frame and frame.Parent then
             local slideOut = TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Expo, Enum.EasingDirection.In), {
@@ -365,12 +362,5 @@ function Toaster.Info(message, options)
     options.Icon = options.Icon or "rbxassetid://7072707037"
     createToast(message, options)
 end
-
--- Test the toaster
-createToast("Test notification 1!")
-task.wait(1)
-createToast("Test notification 2!", {AccentColor = "#FF6B6B"})
-task.wait(1)
-createToast("Test notification 3!", {AccentColor = "#10B981"})
 
 return Toaster
