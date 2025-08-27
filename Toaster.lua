@@ -7,19 +7,16 @@ local TweenService = game:GetService("TweenService")
 
 local function hexToColor3(hex)
     if not hex or type(hex) ~= "string" then
-        warn("hexToColor3: Invalid hex string, using fallback color")
         return Color3.fromRGB(255, 255, 255)
     end
     hex = hex:gsub("#", "")
     if #hex ~= 6 then
-        warn("hexToColor3: Hex string must be 6 characters, using fallback color")
         return Color3.fromRGB(255, 255, 255)
     end
     local r = tonumber("0x" .. hex:sub(1, 2))
     local g = tonumber("0x" .. hex:sub(3, 4))
     local b = tonumber("0x" .. hex:sub(5, 6))
     if not r or not g or not b then
-        warn("hexToColor3: Invalid hex values, using fallback color")
         return Color3.fromRGB(255, 255, 255)
     end
     return Color3.fromRGB(r, g, b)
@@ -71,17 +68,13 @@ local function createToast(message, options)
         end
     end
 
-    -- Validate options
     if type(options.BackgroundColor) ~= "string" or #options.BackgroundColor:gsub("#", "") ~= 6 then
-        warn("Invalid BackgroundColor, using default")
         options.BackgroundColor = DefaultOptions.BackgroundColor
     end
     if type(options.TextColor) ~= "string" or #options.TextColor:gsub("#", "") ~= 6 then
-        warn("Invalid TextColor, using default")
         options.TextColor = DefaultOptions.TextColor
     end
     if type(options.AccentColor) ~= "string" or #options.AccentColor:gsub("#", "") ~= 6 then
-        warn("Invalid AccentColor, using default")
         options.AccentColor = DefaultOptions.AccentColor
     end
 
@@ -94,31 +87,28 @@ local function createToast(message, options)
     frame.ClipsDescendants = true
     frame.ZIndex = 10 + activeToasts
 
-    local corner = Instance.new("UICorner", frame)
-    corner.CornerRadius = UDim.new(0, options.CornerRadius)
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, options.CornerRadius)
 
-    local stroke = Instance.new("UIStroke", frame)
-    stroke.Color = hexToColor3(options.AccentColor)
-    stroke.Thickness = options.BorderThickness
-    stroke.Transparency = 0.8
+    Instance.new("UIStroke", frame).Color = hexToColor3(options.AccentColor)
+    Instance.new("UIStroke", frame).Thickness = options.BorderThickness
+    Instance.new("UIStroke", frame).Transparency = 0.8
 
-    local shadow = Instance.new("Frame", {
-        Parent = frame,
-        Size = UDim2.new(1, 10, 1, 10),
-        Position = UDim2.new(0, -5, 0, -5),
-        BackgroundTransparency = 1,
-        ZIndex = frame.ZIndex - 1
-    })
-    Instance.new("ImageLabel", {
-        Parent = shadow,
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://1316045217",
-        ImageColor3 = hexToColor3(options.BackgroundColor),
-        ImageTransparency = 0.8,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(Vector2.new(10, 10), Vector2.new(10, 10))
-    })
+    local shadow = Instance.new("Frame")
+    shadow.Parent = frame
+    shadow.Size = UDim2.new(1, 10, 1, 10)
+    shadow.Position = UDim2.new(0, -5, 0, -5)
+    shadow.BackgroundTransparency = 1
+    shadow.ZIndex = frame.ZIndex - 1
+
+    local shadowImage = Instance.new("ImageLabel")
+    shadowImage.Parent = shadow
+    shadowImage.Size = UDim2.new(1, 0, 1, 0)
+    shadowImage.BackgroundTransparency = 1
+    shadowImage.Image = "rbxassetid://1316045217"
+    shadowImage.ImageColor3 = hexToColor3(options.BackgroundColor)
+    shadowImage.ImageTransparency = 0.8
+    shadowImage.ScaleType = Enum.ScaleType.Slice
+    shadowImage.SliceCenter = Rect.new(Vector2.new(10, 10), Vector2.new(10, 10))
 
     local labelOffset = options.ShowIcon and 40 or 10
     local labelWidth = options.Width - labelOffset - 10
@@ -159,8 +149,9 @@ local function createToast(message, options)
         btn.TextSize = 14
         btn.BorderSizePixel = 0
         btn.Parent = frame
-        Instance.new("UICorner", {Parent = btn, CornerRadius = UDim.new(0, 6)})
-        Instance.new("UIStroke", {Parent = btn, Color = hexToColor3(options.BackgroundColor), Thickness = 1})
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        Instance.new("UIStroke", btn).Color = hexToColor3(options.BackgroundColor)
+        Instance.new("UIStroke", btn).Thickness = 1
 
         btn.MouseButton1Click:Connect(function()
             if button.Callback then
@@ -202,4 +193,7 @@ local function createToast(message, options)
 end
 
 function Toaster.Notify(message, options)
-    createToast
+    createToast(message, options)
+end
+
+return Toaster
