@@ -87,21 +87,24 @@ local function createToast(message, options)
     frame.ClipsDescendants = true
     frame.ZIndex = 10 + activeToasts
 
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, options.CornerRadius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, options.CornerRadius)
+    corner.Parent = frame
 
-    Instance.new("UIStroke", frame).Color = hexToColor3(options.AccentColor)
-    Instance.new("UIStroke", frame).Thickness = options.BorderThickness
-    Instance.new("UIStroke", frame).Transparency = 0.8
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = hexToColor3(options.AccentColor)
+    stroke.Thickness = options.BorderThickness
+    stroke.Transparency = 0.8
+    stroke.Parent = frame
 
     local shadow = Instance.new("Frame")
-    shadow.Parent = frame
     shadow.Size = UDim2.new(1, 10, 1, 10)
     shadow.Position = UDim2.new(0, -5, 0, -5)
     shadow.BackgroundTransparency = 1
     shadow.ZIndex = frame.ZIndex - 1
+    shadow.Parent = frame
 
     local shadowImage = Instance.new("ImageLabel")
-    shadowImage.Parent = shadow
     shadowImage.Size = UDim2.new(1, 0, 1, 0)
     shadowImage.BackgroundTransparency = 1
     shadowImage.Image = "rbxassetid://1316045217"
@@ -109,6 +112,7 @@ local function createToast(message, options)
     shadowImage.ImageTransparency = 0.8
     shadowImage.ScaleType = Enum.ScaleType.Slice
     shadowImage.SliceCenter = Rect.new(Vector2.new(10, 10), Vector2.new(10, 10))
+    shadowImage.Parent = shadow
 
     local labelOffset = options.ShowIcon and 40 or 10
     local labelWidth = options.Width - labelOffset - 10
@@ -149,9 +153,15 @@ local function createToast(message, options)
         btn.TextSize = 14
         btn.BorderSizePixel = 0
         btn.Parent = frame
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-        Instance.new("UIStroke", btn).Color = hexToColor3(options.BackgroundColor)
-        Instance.new("UIStroke", btn).Thickness = 1
+
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 6)
+        btnCorner.Parent = btn
+
+        local btnStroke = Instance.new("UIStroke")
+        btnStroke.Color = hexToColor3(options.BackgroundColor)
+        btnStroke.Thickness = 1
+        btnStroke.Parent = btn
 
         btn.MouseButton1Click:Connect(function()
             if button.Callback then
