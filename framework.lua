@@ -1,130 +1,178 @@
 --!strict
-local BloodwareUI = {}
+local Bloodware = {}
+Bloodware.__index = Bloodware
+
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
-local gui = Instance.new("ScreenGui")
-gui.Name = "BloodwareUI"
-gui.ResetOnSpawn = false
-gui.Parent = CoreGui
 
-local theme = {
-    Background = Color3.fromRGB(45, 25, 65),
-    Foreground = Color3.fromRGB(100, 60, 160),
-    Accent = Color3.fromRGB(180, 120, 255),
-    Text = Color3.fromRGB(255, 255, 255),
-    BorderRadius = UDim.new(0, 12),
-    Font = Enum.Font.GothamBold
+local function new(class, props)
+    local obj = Instance.new(class)
+    for k, v in pairs(props or {}) do
+        if type(k) ~= "number" then
+            pcall(function() obj[k] = v end)
+        end
+    end
+    return obj
+end
+
+local function hexToColor3(hex)
+    hex = hex:gsub("#", "")
+    return Color3.fromRGB(tonumber("0x"..hex:sub(1,2)), tonumber("0x"..hex:sub(3,4)), tonumber("0x"..hex:sub(5,6)))
+end
+
+local DefaultThemes = {
+    Amethyst = {
+        Background = "4B0082",
+        Sidebar = "330066",
+        Accent = "D580FF",
+        Font = Enum.Font.GothamBold
+    }
 }
 
-local function createRoundFrame(parent, size, pos, bg)
-    local f = Instance.new("Frame")
-    f.Size = size
-    f.Position = pos
-    f.BackgroundColor3 = bg or theme.Background
-    f.BorderSizePixel = 0
-    f.Parent = parent
-    local uic = Instance.new("UICorner")
-    uic.CornerRadius = theme.BorderRadius
-    uic.Parent = f
-    return f
-end
-
-local function createText(parent, text, size, color, align)
-    local l = Instance.new("TextLabel")
-    l.Text = text
-    l.Size = UDim2.new(1, -10, 0, size + 6)
-    l.Position = UDim2.new(0, 5, 0, 0)
-    l.TextSize = size
-    l.Font = theme.Font
-    l.TextColor3 = color or theme.Text
-    l.TextXAlignment = align or Enum.TextXAlignment.Left
-    l.BackgroundTransparency = 1
-    l.Parent = parent
-    return l
-end
-
-function BloodwareUI.CreateWindow(opts)
-    local win = {}
-    local main = createRoundFrame(gui, UDim2.new(0, 500, 0, 350), UDim2.new(0.5, -250, 0.5, -175), theme.Background)
-    local titleBar = createRoundFrame(main, UDim2.new(1, 0, 0, 40), UDim2.new(0, 0, 0, 0), theme.Foreground)
-    createText(titleBar, opts.Name or "Bloodware", 20, theme.Text, Enum.TextXAlignment.Center)
-    local tabContainer = createRoundFrame(main, UDim2.new(0, 120, 1, -40), UDim2.new(0, 0, 0, 40), theme.Background)
-    local content = createRoundFrame(main, UDim2.new(1, -120, 1, -40), UDim2.new(0, 120, 0, 40), theme.Background)
-    win._tabs = {}
-    function win:CreateTab(name)
-        local t = {}
-        local btn = createRoundFrame(tabContainer, UDim2.new(1, -10, 0, 40), UDim2.new(0, 5, 0, #win._tabs * 45))
-        createText(btn, name, 18)
-        local tabFrame = createRoundFrame(content, UDim2.new(1, -10, 1, -10), UDim2.new(0, 5, 0, 5))
-        tabFrame.Visible = false
-        table.insert(win._tabs, {Button = btn, Frame = tabFrame})
-        btn.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                for _, v in ipairs(win._tabs) do
-                    v.Frame.Visible = false
-                end
-                tabFrame.Visible = true
-            end
-        end)
-        function t:CreateSection(label)
-            local s = createRoundFrame(tabFrame, UDim2.new(1, -10, 0, 35), UDim2.new(0, 5, 0, 5 + (#tabFrame:GetChildren() * 40)))
-            createText(s, label, 18, theme.Accent)
-        end
-        function t:CreateButton(label, callback, opts)
-            local b = Instance.new("TextButton")
-            b.Size = UDim2.new(1, -10, 0, 35)
-            b.Position = UDim2.new(0, 5, 0, 5 + (#tabFrame:GetChildren() * 40))
-            b.Text = label
-            b.Font = theme.Font
-            b.TextSize = 18
-            b.TextColor3 = theme.Text
-            b.BackgroundColor3 = theme.Foreground
-            b.BorderSizePixel = 0
-            b.AutoButtonColor = true
-            local uic = Instance.new("UICorner")
-            uic.CornerRadius = theme.BorderRadius
-            uic.Parent = b
-            b.Parent = tabFrame
-            b.MouseButton1Click:Connect(function()
-                if callback then callback() end
-            end)
-            if opts and opts.keybind then
-                UserInputService.InputBegan:Connect(function(input, gpe)
-                    if not gpe and input.KeyCode == opts.keybind then
-                        if callback then callback() end
-                    end
-                end)
+local Keybinds = {}
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        local kc = input.KeyCode
+        local handlers = Keybinds[kc]
+        if handlers then
+            for _, fn in ipairs(handlers) do
+                pcall(fn)
             end
         end
-        function t:CreateToggle(label, callback, opts)
-            local toggle = false
-            local b = Instance.new("TextButton")
-            b.Size = UDim2.new(1, -10, 0, 35)
-            b.Position = UDim2.new(0, 5, 0, 5 + (#tabFrame:GetChildren() * 40))
-            b.Text = label .. ": OFF"
-            b.Font = theme.Font
-            b.TextSize = 18
-            b.TextColor3 = theme.Text
-            b.BackgroundColor3 = theme.Foreground
-            b.BorderSizePixel = 0
-            local uic = Instance.new("UICorner")
-            uic.CornerRadius = theme.BorderRadius
-            uic.Parent = b
-            b.Parent = tabFrame
-            toggle = opts and opts.default or false
-            b.Text = label .. ": " .. (toggle and "ON" or "OFF")
-            b.MouseButton1Click:Connect(function()
-                toggle = not toggle
-                b.Text = label .. ": " .. (toggle and "ON" or "OFF")
-                if callback then callback(toggle) end
-            end)
-        end
-        return t
     end
-    return win
+end)
+
+function Bloodware.CreateWindow(options)
+    options = options or {}
+    local windowName = options.Name or "Bloodware"
+    local toggleKey = options.ToggleUiVisibilityKey or Enum.KeyCode.RightShift
+    local theme = DefaultThemes.Amethyst
+
+    local self = setmetatable({}, Bloodware)
+    self.Tabs = {}
+
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.ResetOnSpawn = false
+    screenGui.Name = windowName
+    screenGui.Parent = CoreGui
+    self.ScreenGui = screenGui
+
+    local main = new("Frame", {
+        Name = "MainFrame",
+        Parent = screenGui,
+        Size = UDim2.new(0, 800, 0, 500),
+        Position = UDim2.new(0.5, -400, 0.5, -250),
+        AnchorPoint = Vector2.new(0.5,0.5),
+        BackgroundColor3 = hexToColor3(theme.Background)
+    })
+    new("UICorner", {Parent = main, CornerRadius = UDim.new(0,12)})
+
+    local topBar = new("Frame", {Parent = main, Size = UDim2.new(1,0,0,36), BackgroundTransparency = 1})
+    local title = new("TextLabel", {
+        Parent = topBar,
+        Size = UDim2.new(1,-80,1,0),
+        Text = windowName,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Font = theme.Font,
+        TextSize = 20,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0,12,0,0),
+        TextColor3 = Color3.fromRGB(255,255,255)
+    })
+    local btnClose = new("TextButton", {Parent = topBar, Size = UDim2.new(0,32,0,24), Position = UDim2.new(1,-40,0,6), Text = "X", BackgroundColor3 = hexToColor3(theme.Accent), BorderSizePixel = 0, TextColor3 = Color3.new(1,1,1), Font = theme.Font, TextSize = 18})
+    local btnMin = new("TextButton", {Parent = topBar, Size = UDim2.new(0,32,0,24), Position = UDim2.new(1,-80,0,6), Text = "-", BackgroundColor3 = hexToColor3(theme.Accent), BorderSizePixel = 0, TextColor3 = Color3.new(1,1,1), Font = theme.Font, TextSize = 18})
+    for _, b in ipairs({btnClose, btnMin}) do
+        new("UICorner", {Parent = b, CornerRadius = UDim.new(0,6)})
+    end
+
+    btnClose.MouseButton1Click:Connect(function() main:Destroy() end)
+    btnMin.MouseButton1Click:Connect(function() main.Visible = not main.Visible end)
+
+    local dragging, dragStart, startPos
+    topBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    topBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+delta.X, startPos.Y.Scale, startPos.Y.Offset+delta.Y)
+        end
+    end)
+
+    local sidebar = new("Frame", {Parent = main, Size = UDim2.new(0,220,1,-36), Position = UDim2.new(0,0,0,36), BackgroundColor3 = hexToColor3(theme.Sidebar)})
+    new("UICorner", {Parent = sidebar, CornerRadius = UDim.new(0,12)})
+
+    local tabsFrame = new("ScrollingFrame", {Parent = sidebar, Position = UDim2.new(0,0,0,0), Size = UDim2.new(1,0,1,0), CanvasSize = UDim2.new(0,0,0,0), ScrollBarThickness = 6})
+    local layout = new("UIListLayout", {Parent = tabsFrame, Padding = UDim.new(0,6), SortOrder = Enum.SortOrder.LayoutOrder})
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        tabsFrame.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 12)
+    end)
+
+    local content = new("Frame", {Parent = main, Position = UDim2.new(0,220,0,36), Size = UDim2.new(1,-220,1,-36), BackgroundTransparency = 1})
+
+    self.UI = {
+        Main = main,
+        Sidebar = sidebar,
+        TabsFrame = tabsFrame,
+        Content = content,
+        Title = title
+    }
+
+    Keybinds[toggleKey] = Keybinds[toggleKey] or {}
+    table.insert(Keybinds[toggleKey], function() screenGui.Enabled = not screenGui.Enabled end)
+
+    function self:CreateTab(name)
+        local tab = {}
+        tab.Button = new("TextButton", {Parent = tabsFrame, Size = UDim2.new(1,-12,0,36), Text = name, BackgroundTransparency = 1, TextXAlignment = Enum.TextXAlignment.Left, Font = theme.Font, TextSize = 18, TextColor3 = Color3.new(1,1,1)})
+        new("UICorner", {Parent = tab.Button, CornerRadius = UDim.new(0,6)})
+        tab.Page = new("Frame", {Parent = content, Size = UDim2.new(1,0,1,0), BackgroundTransparency = 1, Visible = false})
+
+        tab.Button.MouseButton1Click:Connect(function()
+            for _, t in ipairs(self.Tabs) do
+                t.Page.Visible = false
+                t.Button.BackgroundTransparency = 1
+            end
+            tab.Page.Visible = true
+            tab.Button.BackgroundTransparency = 0
+        end)
+
+        function tab:CreateButton(text, callback)
+            local btn = new("TextButton", {Parent = tab.Page, Size = UDim2.new(1,-24,0,36), Position = UDim2.new(0,12,0,0), Text = text, BackgroundColor3 = hexToColor3(theme.Accent), BorderSizePixel = 0, Font = theme.Font, TextSize = 18, TextColor3 = Color3.new(1,1,1)})
+            new("UICorner", {Parent = btn, CornerRadius = UDim.new(0,6)})
+            btn.MouseButton1Click:Connect(function() pcall(callback) end)
+            return btn
+        end
+
+        function tab:CreateToggle(text, callback, default)
+            local state = default or false
+            local btn = new("TextButton", {Parent = tab.Page, Size = UDim2.new(1,-24,0,36), Position = UDim2.new(0,12,0,0), Text = text .. ": " .. (state and "On" or "Off"), BackgroundColor3 = hexToColor3(theme.Accent), BorderSizePixel = 0, Font = theme.Font, TextSize = 18, TextColor3 = Color3.new(1,1,1)})
+            new("UICorner", {Parent = btn, CornerRadius = UDim.new(0,6)})
+            btn.MouseButton1Click:Connect(function()
+                state = not state
+                btn.Text = text .. ": " .. (state and "On" or "Off")
+                pcall(callback, state)
+            end)
+            return btn
+        end
+
+        table.insert(self.Tabs, tab)
+        return tab
+    end
+
+    return self
 end
 
-return BloodwareUI
+return Bloodware
