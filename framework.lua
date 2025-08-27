@@ -2,6 +2,8 @@
 local Bloodware = {}
 Bloodware.__index = Bloodware
 
+local TopbarPlus = loadstring(game:HttpGet("https://raw.githubusercontent.com/1ForeverHD/TopbarPlus/refs/heads/main/src/init.lua"))()
+
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -92,7 +94,26 @@ function Bloodware.CreateWindow(options)
     end
 
     btnClose.MouseButton1Click:Connect(function() main:Destroy() end)
-    btnMin.MouseButton1Click:Connect(function() main.Visible = not main.Visible end)
+    local icon = TopbarPlus.Icon.new()
+    :setImage("rbxassetid://YOUR_ICON_ASSET") -- ill do this later
+    :setLabel(windowName)
+    :bindEvent("selected", function()
+        main.Visible = true
+    end)
+    :bindEvent("deselected", function()
+        main.Visible = false
+    end)
+
+btnMin.MouseButton1Click:Connect(function()
+    if main.Visible then
+        main.Visible = false
+        icon:setSelected(false)
+    else
+        main.Visible = true
+        icon:setSelected(true)
+    end
+end)
+
 
     local dragging, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
