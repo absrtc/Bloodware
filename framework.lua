@@ -266,7 +266,6 @@ function Bloodware.CreateWindow(options)
     })
     new("UICorner", {Parent = btnClose, CornerRadius = UDim.new(0, 8)})
 
-    -- Button hover animations
     local function addButtonHover(button, hoverColor, originalColor)
         button.MouseEnter:Connect(function()
             TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
