@@ -30,7 +30,7 @@ screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local DefaultOptions = {
-    Duration = 4,
+    Duration = 3,
     BackgroundColor = "#1F2937",
     TextColor = "#F9FAFB",
     AccentColor = "#8B5CF6",
@@ -43,7 +43,7 @@ local DefaultOptions = {
     Icon = "rbxassetid://7072706760",
     BorderThickness = 0,
     CornerRadius = 12,
-    AnimationStyle = Enum.EasingStyle.Exponential,
+    AnimationStyle = Enum.EasingStyle.Expo, -- Fixed: was Exponential
     AnimationDuration = 0.6,
     Buttons = {},
     MaxToasts = 6,
@@ -77,10 +77,13 @@ local function removeToast(frame)
     activeToasts = math.max(0, activeToasts - 1)
     updateToastPositions()
     
+    -- Fixed: Process queue without blocking wait
     if #toastQueue > 0 then
         local nextToast = table.remove(toastQueue, 1)
-        task.wait(0.1) 
-        createToast(nextToast[1], nextToast[2])
+        task.spawn(function()
+            task.wait(0.1)
+            createToast(nextToast[1], nextToast[2])
+        end)
     end
 end
 
@@ -313,6 +316,7 @@ local function createToast(message, options)
         Size = UDim2.new(0, 0, 0, 2)
     }):Play()
 
+    -- Fixed: Auto-dismiss after duration
     task.delay(options.Duration, function()
         if frame and frame.Parent then
             local slideOut = TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Expo, Enum.EasingDirection.In), {
@@ -361,5 +365,12 @@ function Toaster.Info(message, options)
     options.Icon = options.Icon or "rbxassetid://7072707037"
     createToast(message, options)
 end
+
+-- Test the toaster
+createToast("Test notification 1!")
+task.wait(1)
+createToast("Test notification 2!", {AccentColor = "#FF6B6B"})
+task.wait(1)
+createToast("Test notification 3!", {AccentColor = "#10B981"})
 
 return Toaster
