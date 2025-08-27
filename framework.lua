@@ -52,7 +52,7 @@ local DefaultThemes = {
         Success = "#10B981",
         Warning = "#F59E0B",
         Error = "#EF4444",
-        Font = Enum.Font.Inter,
+        Font = Enum.Font.GothamBold,
         Shadow = "#000000"
     },
     Dark = {
@@ -66,7 +66,7 @@ local DefaultThemes = {
         Success = "#059669",
         Warning = "#D97706",
         Error = "#DC2626",
-        Font = Enum.Font.Inter,
+        Font = Enum.Font.GothamBold,
         Shadow = "#000000"
     }
 }
