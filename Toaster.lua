@@ -6,8 +6,23 @@ local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 
 local function hexToColor3(hex)
+    if not hex or type(hex) ~= "string" then
+        warn("hexToColor3: Invalid hex string, using fallback color")
+        return Color3.fromRGB(255, 255, 255)
+    end
     hex = hex:gsub("#", "")
-    return Color3.fromRGB(tonumber("0x"..hex:sub(1,2)), tonumber("0x"..hex:sub(3,4)), tonumber("0x"..hex:sub(5,6)))
+    if #hex ~= 6 then
+        warn("hexToColor3: Hex string must be 6 characters, using fallback color")
+        return Color3.fromRGB(255, 255, 255)
+    end
+    local r = tonumber("0x" .. hex:sub(1, 2))
+    local g = tonumber("0x" .. hex:sub(3, 4))
+    local b = tonumber("0x" .. hex:sub(5, 6))
+    if not r or not g or not b then
+        warn("hexToColor3: Invalid hex values, using fallback color")
+        return Color3.fromRGB(255, 255, 255)
+    end
+    return Color3.fromRGB(r, g, b)
 end
 
 local screenGui = Instance.new("ScreenGui")
@@ -15,6 +30,7 @@ screenGui.ResetOnSpawn = false
 screenGui.Name = "Toaster"
 screenGui.Parent = CoreGui
 screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local DefaultOptions = {
     Duration = 3,
@@ -33,7 +49,7 @@ local DefaultOptions = {
     AnimationStyle = Enum.EasingStyle.Quad,
     AnimationDuration = 0.4,
     Buttons = {},
-    MaxToasts = 5, 
+    MaxToasts = 5,
     ToastSpacing = 10
 }
 
@@ -53,6 +69,20 @@ local function createToast(message, options)
         if options[k] == nil then
             options[k] = v
         end
+    end
+
+    -- Validate options
+    if type(options.BackgroundColor) ~= "string" or #options.BackgroundColor:gsub("#", "") ~= 6 then
+        warn("Invalid BackgroundColor, using default")
+        options.BackgroundColor = DefaultOptions.BackgroundColor
+    end
+    if type(options.TextColor) ~= "string" or #options.TextColor:gsub("#", "") ~= 6 then
+        warn("Invalid TextColor, using default")
+        options.TextColor = DefaultOptions.TextColor
+    end
+    if type(options.AccentColor) ~= "string" or #options.AccentColor:gsub("#", "") ~= 6 then
+        warn("Invalid AccentColor, using default")
+        options.AccentColor = DefaultOptions.AccentColor
     end
 
     local frame = Instance.new("Frame")
@@ -100,7 +130,7 @@ local function createToast(message, options)
     label.Size = UDim2.new(0, labelWidth, 1, 0)
     label.Position = UDim2.new(0, labelOffset, 0, 0)
     label.BackgroundTransparency = 1
-    label.Text = message
+    label.Text = message or "No message provided"
     label.TextColor3 = hexToColor3(options.TextColor)
     label.Font = options.Font
     label.TextSize = options.TextSize
@@ -123,7 +153,7 @@ local function createToast(message, options)
         btn.Size = UDim2.new(0, 70, 0, 30)
         btn.Position = UDim2.new(1, -80 * (#options.Buttons - i + 1) - 10, 0.5, -15)
         btn.BackgroundColor3 = hexToColor3(options.AccentColor)
-        btn.Text = button.Text
+        btn.Text = button.Text or "Button"
         btn.TextColor3 = hexToColor3(options.TextColor)
         btn.Font = options.Font
         btn.TextSize = 14
@@ -133,7 +163,9 @@ local function createToast(message, options)
         Instance.new("UIStroke", {Parent = btn, Color = hexToColor3(options.BackgroundColor), Thickness = 1})
 
         btn.MouseButton1Click:Connect(function()
-            pcall(button.Callback)
+            if button.Callback then
+                pcall(button.Callback)
+            end
             local tween = TweenService:Create(frame, TweenInfo.new(options.AnimationDuration, options.AnimationStyle, Enum.EasingDirection.In), {
                 Position = UDim2.new(1, options.Width + 10, frame.Position.Y)
             })
@@ -164,13 +196,10 @@ local function createToast(message, options)
             if #toastQueue > 0 then
                 local nextToast = table.remove(toastQueue, 1)
                 createToast(nextToast[1], nextToast[2])
-            end
+            end)
         end)
     end)
 end
 
 function Toaster.Notify(message, options)
-    createToast(message, options)
-end
-
-return Toaster
+    createToast
