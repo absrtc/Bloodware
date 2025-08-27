@@ -2,8 +2,6 @@
 local Bloodware = {}
 Bloodware.__index = Bloodware
 
-local TopbarPlus = loadstring(game:HttpGet("https://raw.githubusercontent.com/1ForeverHD/TopbarPlus/refs/heads/main/src/init.lua"))()
-
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -53,7 +51,7 @@ end)
 function Bloodware.CreateWindow(options)
     options = options or {}
     local windowName = options.Name or "Bloodware"
-    local toggleKey = options.ToggleUiVisibilityKey or Enum.KeyCode.RightShift
+    local toggleKey = Enum.KeyCode.U
     local theme = DefaultThemes.Amethyst
 
     local self = setmetatable({}, Bloodware)
@@ -88,32 +86,9 @@ function Bloodware.CreateWindow(options)
         TextColor3 = Color3.fromRGB(255,255,255)
     })
     local btnClose = new("TextButton", {Parent = topBar, Size = UDim2.new(0,32,0,24), Position = UDim2.new(1,-40,0,6), Text = "X", BackgroundColor3 = hexToColor3(theme.Accent), BorderSizePixel = 0, TextColor3 = Color3.new(1,1,1), Font = theme.Font, TextSize = 18})
-    local btnMin = new("TextButton", {Parent = topBar, Size = UDim2.new(0,32,0,24), Position = UDim2.new(1,-80,0,6), Text = "-", BackgroundColor3 = hexToColor3(theme.Accent), BorderSizePixel = 0, TextColor3 = Color3.new(1,1,1), Font = theme.Font, TextSize = 18})
-    for _, b in ipairs({btnClose, btnMin}) do
-        new("UICorner", {Parent = b, CornerRadius = UDim.new(0,6)})
-    end
+    new("UICorner", {Parent = btnClose, CornerRadius = UDim.new(0,6)})
 
     btnClose.MouseButton1Click:Connect(function() main:Destroy() end)
-    local icon = TopbarPlus.Icon.new()
-    :setImage("rbxassetid://YOUR_ICON_ASSET") -- ill do this later
-    :setLabel(windowName)
-    :bindEvent("selected", function()
-        main.Visible = true
-    end)
-    :bindEvent("deselected", function()
-        main.Visible = false
-    end)
-
-btnMin.MouseButton1Click:Connect(function()
-    if main.Visible then
-        main.Visible = false
-        icon:setSelected(false)
-    else
-        main.Visible = true
-        icon:setSelected(true)
-    end
-end)
-
 
     local dragging, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
@@ -153,7 +128,7 @@ end)
     }
 
     Keybinds[toggleKey] = Keybinds[toggleKey] or {}
-    table.insert(Keybinds[toggleKey], function() screenGui.Enabled = not screenGui.Enabled end)
+    table.insert(Keybinds[toggleKey], function() main.Visible = not main.Visible end)
 
     function self:CreateTab(name)
         local tab = {}
